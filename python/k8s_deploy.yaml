@@ -1,0 +1,34 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ${K8S_DEPLOYMENT_NAME}
+  namespace: ${NAME_SPACE}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ${K8S_DEPLOYMENT_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${K8S_DEPLOYMENT_NAME}
+    spec:
+      hostAliases:
+      - ip: "10.1.9.12"
+        hostnames:
+        - "sddpsql01"
+      containers:
+      - name: ${K8S_DEPLOYMENT_NAME}
+        image: registry.xxx.com/$GIT_BRANCH/$JOB_NAME:$BUILD_NUMBER
+        env:
+        - name: JENKINS_USER_ID
+          value: "minhuc"
+        - name: JENKINS_API_TOKEN
+          value: "11e8634a93a03968d5ef04d0f95c895d30"
+        - name: JENKINS_URL
+          value: "http://localhost:8080/"
+      imagePullSecrets:
+        - name: regcred
+
+---
