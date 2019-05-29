@@ -1,0 +1,143 @@
+---
+- name: configure name servers
+  shell: echo "nameserver 8.8.8.8" > /etc/resolvconf/resolv.conf.d/base
+  become: yes
+- name: update name server
+  shell: resolvconf -u
+  become: yes
+- name: Update apt cache
+  apt: update_cache=yes
+  become: yes
+
+- name: Upgrade packages
+  apt: upgrade=dist force=yes
+  become: yes
+
+- name: Add hostname
+  lineinfile:
+    path: /etc/hosts
+    regex: "{{item}}"
+    line: "{{hostvars[item]['ansible_ssh_host']}} {{item}}"
+  #when: inventory_hostname == item
+  with_items: "{{ groups['inits'] }}"
+  become: yes
+
+- name: Install NTP
+  apt: package=ntp state=present update_cache=yes
+  become: yes
+
+- name: Copy over the NTP configuration
+  template: src=ntp.conf.j2 dest=/etc/ntp.conf
+  notify:
+    - restart ntp
+    - force ntp update
+- name: Make sure NTP is started up
+  service: name=ntp state=started enabled=yes
+  become: yes
+
+- name: Install cli tool
+  apt: 
+    package:
+      - htop
+      - sysstat
+    state: present 
+    update_cache: yes
+  become: yes
+
+- name: Enable sysstat
+  shell: echo 'ENABLED="true"' > /etc/default/sysstat 
+  become: yes
+
+#setup user, normal user, sudo 
+- name: "Create user"
+  user:
+    name: "{{ sys_user }}"
+    shell: /bin/bash
+  become: yes
+
+- name: "Set authorized_key to allow SSH key based logins"
+  authorized_key:
+    user: "{{ sys_user }}"
+    key: "{{ sys_key }}"
+  become: yes
+
+- name: "Enable including files from sudoers.d/"
+  lineinfile:
+    path: "/etc/sudoers"
+    regexp: "^#includedir /etc/sudoers.d"
+    line: "#includedir /etc/sudoers.d"
+    state: "present"
+    backup: True
+  when: user_enable_passwordless_sudo
+  become: yes
+
+- name: "Enable passwordless sudo"
+  copy:
+    content: "%{{ sys_user }} ALL=(ALL) NOPASSWD:ALL"
+    dest: "/etc/sudoers.d/{{ sys_user }}"
+    owner: "root"
+    group: "root"
+    mode: "0440"
+  when: user_enable_passwordless_sudo
+  become: yes
+
+#set rule iptables
+- name: Start iptables
+  service: 
+    name: ufw 
+    state: started
+
+- name: insert ssh rule
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: 22
+    action: insert
+    jump: ACCEPT
+    comment: Accept ssh
+  become: yes
+- name: Allow related and established connections
+  iptables:
+    chain: INPUT
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+  become: yes
+
+- name: INPUT policy DROP
+  iptables:
+    chain: INPUT
+    policy: DROP
+  become: yes
+
+- name: OUTPUT policy ACCEPT
+  iptables:
+    chain: OUTPUT
+    policy: ACCEPT
+  become: yes
+
+- name: FORWARD policy DROP
+  iptables:
+    chain: FORWARD
+    policy: DROP
+  become: yes
+
+- name: save iptables rule
+  shell: iptables-save > /etc/iptables.rules
+  become: yes
+
+#config ssh => private key
+
+- name: Copy sshd config
+  template: src=sshd_config.j2 dest=/etc/ssh/sshd_config
+  become: yes
+
+- name: Start service ssh
+  service:
+    name: ssh
+    state: restarted
+  become: yes
+
+- name: Make sure sshd start is started up
+  service: name=ssh state=started enabled=yes
+  become: yes
+

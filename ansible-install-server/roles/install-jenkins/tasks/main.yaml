@@ -1,0 +1,80 @@
+#install java
+- name: Install some tool
+  apt: 
+    name: 
+      - curl
+      - apt-transport-https
+    state: present 
+    update_cache: yes
+    force: yes
+  become: yes
+
+- name: Add Oracle Java Repository
+  become: yes
+  apt_repository: repo='ppa:openjdk-r/ppa'
+
+- name: Install Oracle Java 8
+  become: yes
+  apt: name=openjdk-8-jdk state=latest
+
+- name: select java8
+  become: yes
+  shell: update-java-alternatives -s java-1.8.0-openjdk-amd64
+
+# Environment setup.
+- name: Set JAVA_HOME if configured.
+  template:
+    src: java_home.sh.j2
+    dest: /etc/profile.d/java_home.sh
+    mode: 0644
+  become: yes
+
+#install jenkins server
+
+- name: Add Jenkins apt repository key.
+  apt_key:
+    url: "{{ jenkins_repo_key_url }}"
+    state: present
+  become: yes
+
+- name: Add Jenkins apt repository.
+  apt_repository:
+    repo: "{{ jenkins_repo_url }}"
+    state: present
+    update_cache: true
+  become: yes
+
+- name: Install jenkins.
+  apt:
+    name: jenkins
+    state: present
+  become: yes
+- name: start jenkins
+  service: name=jenkins state=started enabled=yes
+  become: yes
+
+- name: insert jenkins rule
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: 8080
+    action: insert
+    jump: ACCEPT
+    comment: Accept jenkins
+  become: yes
+
+#config jenkins
+- name: Wait for Jenkins to start up before proceeding.
+  command: >
+    curl -D - --silent --max-time 5 http://127.0.0.1:8080/cli/
+  args:
+    warn: false
+  register: result
+  until: >
+    (result.stdout.find("403 Forbidden") != -1)
+    or (result.stdout.find("200 OK") != -1)
+    and (result.stdout.find("Please wait while") == -1)
+  retries: 5
+  delay: 10
+  changed_when: false
+  check_mode: false

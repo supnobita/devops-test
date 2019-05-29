@@ -1,0 +1,26 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+	config.vm.box = "ubuntu/trusty64"
+	# workaround for https://github.com/mitchellh/vagrant/issues/5048
+	config.ssh.insert_key = false
+
+	# General VirtualBox VM configuration.
+	config.vm.provider :virtualbox do |v|
+		v.customize ["modifyvm", :id, "--memory", 1024]
+		v.customize ["modifyvm", :id, "--cpus", 1]
+		v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+		v.customize ["modifyvm", :id, "--ioapic", "on"]
+	end
+
+	if Vagrant.has_plugin?("vagrant-cachier")
+		config.cache.scope = :machine
+	end
+
+	config.vm.define "host1" do |node|
+		node.vm.hostname = "host1.dev"
+		node.vm.network :private_network, ip: "192.168.56.4"
+	end
+
+end

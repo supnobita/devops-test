@@ -1,0 +1,6 @@
+---
+- name: restart ntp
+  service: name=ntp state=restarted
+  
+- name: force ntp update
+  shell: "systemctl stop ntp && ntpdate -s {{ timeserver }} && systemctl start ntp"

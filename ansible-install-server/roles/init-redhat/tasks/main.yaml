@@ -1,0 +1,130 @@
+---
+- name: upgrade all packages
+  yum: name=* state=latest
+
+- name: Add hostname
+  lineinfile:
+    path: /etc/hosts
+    regex: "{{item}}"
+    line: "{{hostvars[item]['ansible_ssh_host']}} {{item}}"
+  #when: inventory_hostname == item
+  with_items: "{{ groups['inits'] }}"
+
+- name: Install ntpdate
+  yum:
+    name: ntpdate
+    state: latest
+  become: yes
+
+- name: Copy over the NTP configuration
+  template: src=ntp.conf.j2 dest=/etc/ntp.conf
+  notify:
+    - restart ntp
+    - force ntp update
+- name: Make sure NTP is started up
+  service: name=ntp state=started enabled=yes
+  become: yes
+
+- name: Install repo epel
+  yum:
+    name: epel-release
+  become: yes
+
+- name: Install cli tool
+  yum:
+    name: 
+      - htop
+      - sysstat
+  become: yes
+
+- name: enable sysstat services
+  shell: systemctl enable sysstat && systemctl start sysstat 
+
+#setup user, normal user, sudo 
+- name: "Create user"
+  user:
+    name: "{{ sys_user }}"
+    shell: /bin/bash
+  become: yes
+
+- name: "Set authorized_key to allow SSH key based logins"
+  authorized_key:
+    user: "{{ sys_user }}"
+    key: "{{ sys_key }}"
+  become: yes
+
+- name: "Enable including files from sudoers.d/"
+  lineinfile:
+    path: "/etc/sudoers"
+    regexp: "^#includedir /etc/sudoers.d"
+    line: "#includedir /etc/sudoers.d"
+    state: "present"
+    backup: True
+  when: user_enable_passwordless_sudo
+  become: yes
+
+- name: "Enable passwordless sudo"
+  copy:
+    content: "%{{ sys_user }} ALL=(ALL) NOPASSWD:ALL"
+    dest: "/etc/sudoers.d/{{ sys_user }}"
+    owner: "root"
+    group: "root"
+    mode: "0440"
+  when: user_enable_passwordless_sudo
+  become: yes
+
+#set rule iptables
+
+- name: Start iptables
+  service: 
+    name: iptables 
+    state: started
+
+- name: INPUT policy DROP
+  iptables:
+    chain: INPUT
+    policy: DROP
+  become: yes
+
+- name: OUTPUT policy ACCEPT
+  iptables:
+    chain: OUTPUT
+    policy: ACCEPT
+  become: yes
+
+- name: FORWARD policy DROP
+  iptables:
+    chain: FORWARD
+    policy: DROP
+  become: yes
+
+- name: insert ssh rule
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: 22
+    action: insert
+    jump: ACCEPT
+    comment: Accept ssh
+  become: yes
+
+- name: save iptables rule
+  shell: iptables-save > /etc/sysconfig/iptables
+  become: yes
+
+#config ssh => private key
+
+- name: Copy sshd config
+  template: src=sshd_config.j2 dest=/etc/ssh/sshd_config
+  become: yes
+
+- name: Start service sshd
+  service:
+    name: sshd
+    state: restarted
+  become: yes
+
+- name: Make sure sshd start is started up
+  service: name=sshd state=started enabled=yes
+  become: yes
+
