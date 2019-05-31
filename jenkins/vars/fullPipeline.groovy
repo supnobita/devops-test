@@ -1,6 +1,12 @@
 ///vars/pipeline.groovy
 
 def call(String k8sDeploymentName,String nameSpace){
+if nameSpace.indexOf("master") != -1 {
+    nameSpace = "production"
+}
+else {
+    nameSpace = "develop"
+}
 pipeline {
 
     agent any
