@@ -1,10 +1,13 @@
+///vars/pipeline.groovy
+
+def call(String k8sDeploymentName,String nameSpace){
 pipeline {
 
     agent any
 
     environment {
-        K8S_DEPLOYMENT_NAME = 'cli'
-        NAME_SPACE='default'
+        K8S_DEPLOYMENT_NAME = "${k8sDeploymentName}"
+        NAME_SPACE= "${nameSpace}"
     }
 
     stages {
@@ -19,7 +22,7 @@ pipeline {
             steps{
                 script{
                     withDockerRegistry(url: 'https://registry.xxx.com','docker-id') {
-                        def app = docker.build("registry.goohyeah.com/$GIT_BRANCH/$JOB_NAME:$BUILD_NUMBER")
+                        def app = docker.build("registry.xxx.com/$GIT_BRANCH/$JOB_NAME:$BUILD_NUMBER")
                         app.push()
                     }
                 }      
@@ -36,4 +39,5 @@ pipeline {
             }
         }
     }
+}
 }

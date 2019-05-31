@@ -1,0 +1,4 @@
+// This pipeline use shared lib at folder jenkins, use file jenkins/vars/fullJenkins.groovy
+@Library('util') _
+
+fullPipeline 'k8syaml', 'default'
