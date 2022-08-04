@@ -1,0 +1,12 @@
+name: Test secret
+
+on:
+  push
+
+
+jobs:
+  greeting_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Say Hello Mona it's Monday"
+        run: echo ${{ secrets.TEST }} | base64 -d 
