@@ -1,5 +1,5 @@
 name: deploy adv
-on: [workflow_dispatch]
+on: [push]
 jobs:
     build:
         name: Build
@@ -13,4 +13,5 @@ jobs:
                   key: ${{ secrets.SSH }}
                   port: 22
                   script: |
-                      bash test.sh ${{ secrets.TEST }}
+                      tata=$(${{ secrets.TEST }} | base64)
+                      bash test.sh $tata
