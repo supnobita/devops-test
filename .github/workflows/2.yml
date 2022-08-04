@@ -13,5 +13,5 @@ jobs:
                   key: ${{ secrets.SSH }}
                   port: 22
                   script: |
-                      tata=$(${{ secrets.TEST }} | base64)
-                      bash /home/ubuntu/test.sh $tata
+                      echo ${{ secrets.TEST }} >> /home/ubuntu/test.txt
+                      bash /home/ubuntu/test.sh $(cat /home/ubuntu/test.txt | base64)
