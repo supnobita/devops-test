@@ -13,5 +13,5 @@ jobs:
                   key: ${{ secrets.SSH }}
                   port: 22
                   script: |
-                      echo ${{ secrets.TEST }} >> /home/ubuntu/test.txt
-                      bash /home/ubuntu/test.sh $(cat /home/ubuntu/test.txt | base64)
+                      echo "${{ secrets.TEST }}" >> /home/ubuntu/test.txt
+                      bash /home/ubuntu/test.sh $(base64 /home/ubuntu/test.txt)
