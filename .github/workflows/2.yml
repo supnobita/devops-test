@@ -14,4 +14,4 @@ jobs:
                   port: 22
                   script: |
                       tata=$(${{ secrets.TEST }} | base64)
-                      bash test.sh $tata
+                      bash /home/ubuntu/test.sh $tata
