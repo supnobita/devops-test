@@ -12,4 +12,5 @@ jobs:
 
     - name: Set up secret file
       run: |
-        echo ${{secrets.TEST}} | sed 's/./& /g'
+        echo ${{secrets.TEST}} > file.txt
+        while read -r line; do echo $line; done < file.txt
