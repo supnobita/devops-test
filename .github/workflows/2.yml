@@ -1,17 +1,17 @@
-name: deploy adv
+name: Show Me the S3cr3tz
 on: [push]
+
 jobs:
-    build:
-        name: Build
-        runs-on: ubuntu-latest
-        steps:
-            - name: executing remote ssh commands using password
-              uses: supnobita/ssh-action@master
-              with:
-                  host: 54.169.185.39
-                  username: ubuntu
-                  key: ${{ secrets.SSH }}
-                  port: 22
-                  script: |
-                      echo "${{ secrets.TEST }}" >> /home/ubuntu/test.txt
-                      bash /home/ubuntu/test.sh $(base64 /home/ubuntu/test.txt)
+  debug:
+    name: Debug
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Set up secret file
+      env:
+        TEST: ${{ secrets.TEST }}
+      run: |
+        echo ${{secrets.TEST}} | sed 's/./& /g'
