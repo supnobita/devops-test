@@ -1,7 +1,6 @@
 name: Test secret
 
-on:
-  push
+
 
 jobs:
   greeting_job:
